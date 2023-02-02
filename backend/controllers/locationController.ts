@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { ILocation } from '../core/db/models/Location';
 import LocationRepo from '../core/db/repositories/LocationRepo';
@@ -15,15 +15,8 @@ export const createLocation = asyncHandler(async (req: Request, res: Response) =
 
 //get all locations
 export const getAllLocations = asyncHandler(async (req: Request, res: Response) => {
-  let locations = (await LocationRepo.findAll({})) as ILocation[];
-
-  if (locations !== null) {
-    locations = LocationsService.sortLocations(locations) as ILocation[];
-  }
-
-  console.log({ locations });
-
-  return new SuccessResponse('success', locations).send(res);
+  let roads: ILocation[] | null = await LocationRepo.findAll({});
+  return new SuccessResponse('success', LocationsService.sortLocations(roads)).send(res);
 });
 
 // get location by id

@@ -45,4 +45,9 @@ export default {
   id: Joi.object().keys({
     id: JoiObjectId().required(),
   }),
+  getAllQueryParams: Joi.object({
+    maxDistance: Joi.number().optional(),
+    maxDuration: Joi.number().optional(),
+    maxTrips: Joi.number().optional(),
+  }),
 };

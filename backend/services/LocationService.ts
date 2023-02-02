@@ -24,8 +24,6 @@ class LocationsService {
   }
 
   static calculateRoadDistance(locations: ILocation[]) {
-    const formatted: ILocation[][] = [];
-
     return locations
       .map((location, index, arr) => (arr[index + 1] ? [location, arr[index + 1]] : [location]))
       .reduce(
@@ -69,7 +67,15 @@ class LocationsService {
     return roads;
   }
 
-  static sortLocations(locations: ILocation[]) {
+  static sortLocations(locations: ILocation[] | null) {
+    if (!locations) {
+      return [];
+    }
+
+    if (locations.length === 1 || locations.length === 0) {
+      return locations;
+    }
+
     const graph = this.constructGraph(locations);
     const roads: ILocation[][] = [];
 
@@ -77,7 +83,7 @@ class LocationsService {
       roads.push(...this.findAllRoads(source, destinations));
     }
 
-    return roads.slice().sort((a, b) => (this.calculateRoadDistance(a) > this.calculateRoadDistance(b) ? 1 : -1));
+    return roads.slice().sort((a, b) => (this.calculateRoadDistance(a) > this.calculateRoadDistance(b) ? 1 : -1))[0];
   }
 }
 

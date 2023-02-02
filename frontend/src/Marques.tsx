@@ -1,22 +1,24 @@
+import { useCallback, useEffect, useState } from "react";
+import { BACKEND_URL } from "./config";
+import Routing from "./routingMachine";
+import randomRGB from "./utils/randomRGB";
+import { ILocation } from "./routingMachine";
 import {
   LatLng,
   LeafletEvent,
-  LocationEvent,
   LeafletMouseEvent,
-  polyline,
+  LocationEvent,
 } from "leaflet";
-import { useCallback, useEffect, useState } from "react";
-import { Marker, Popup, useMapEvents } from "react-leaflet";
-import { BACKEND_URL } from "./config";
-
-interface Position {
-  latitude: number;
-  longitude: number;
-  _id: string;
-}
+import { Marker, useMapEvents } from "react-leaflet";
 
 const Marques = () => {
-  const [positions, setPositions] = useState<Position[]>([]);
+  const [positions, setPositions] = useState<ILocation[]>([]);
+
+  const getPositions = useCallback(async () => {
+    const response = await fetch(`${BACKEND_URL}locations`);
+    const { data } = await response.json();
+    setPositions(data);
+  }, []);
 
   const addPosition = useCallback(async (newPosition: LatLng) => {
     const response = await fetch(`${BACKEND_URL}/locations`, {
@@ -38,7 +40,7 @@ const Marques = () => {
   }, []);
 
   const deletePosition = useCallback(
-    (id: Position["_id"]) => async (e: LeafletMouseEvent) => {
+    (id: ILocation["_id"]) => async (e: LeafletMouseEvent) => {
       const isShiftPressed = e.originalEvent.shiftKey;
       if (!isShiftPressed) {
         return;
@@ -56,7 +58,7 @@ const Marques = () => {
   );
 
   const updatePosition = useCallback(
-    (id: Position["_id"]) => async (e: LeafletEvent) => {
+    (id: ILocation["_id"]) => async (e: LeafletEvent) => {
       const newPosition = (e as LocationEvent).target._latlng;
       const response = await fetch(`${BACKEND_URL}/locations/${id}`, {
         method: "PATCH",
@@ -92,17 +94,9 @@ const Marques = () => {
       map.locate();
     },
     locationfound(e) {
-      console.log("location found !");
       map.flyTo(e.latlng, map.getZoom());
     },
   });
-
-  const getPositions = useCallback(async () => {
-    const response = await fetch(`${BACKEND_URL}/locations`);
-    const { data } = await response.json();
-
-    setPositions(data);
-  }, []);
 
   useEffect(() => {
     getPositions();
@@ -110,7 +104,27 @@ const Marques = () => {
 
   return (
     <>
-      {positions.map((pos, index) => (
+      {positions.length === 0 ? undefined : positions.length === 1 ? (
+        <Marker
+          position={{ lat: positions[0].latitude, lng: positions[0].longitude }}
+          key={1}
+          riseOnHover
+          draggable
+          eventHandlers={{
+            click: deletePosition(positions[0]._id),
+            dragend: updatePosition(positions[0]._id),
+          }}
+        />
+      ) : (
+        positions.length > 1 && (
+          <Routing
+            route={positions}
+            deletePosition={deletePosition}
+            updatePosition={updatePosition}
+          />
+        )
+      )}
+      {/* {positions.map((pos, index) => (
         <Marker
           position={{ lat: pos.latitude, lng: pos.longitude }}
           key={index}
@@ -125,7 +139,7 @@ const Marques = () => {
             latitude : {pos.latitude}, longitude : {pos.longitude}
           </Popup>
         </Marker>
-      ))}
+      ))} */}
     </>
   );
 };

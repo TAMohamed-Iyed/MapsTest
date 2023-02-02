@@ -65,6 +65,16 @@ router.post('/', validate(locationSchema.create), createLocation);
  *  get:
  *    summary: get all locations
  *    tags: [Locations]
+ *    parameters:
+ *      - in: query
+ *        name: maxDistance
+ *        description: the max length of each trip (in kilometers)
+ *      - in: query
+ *        name: maxDuration
+ *        description: the max duration of each trip (in seconds)
+ *      - in: query
+ *        name: maxTrips
+ *        description: max number of trips
  *    responses:
  *      200:
  *        description: Get all locations
@@ -84,7 +94,7 @@ router.post('/', validate(locationSchema.create), createLocation);
  *        description: Internal server error
  */
 
-router.get('/', getAllLocations);
+router.get('/', validate(locationSchema.getAllQueryParams, ValidationSource.QUERY), getAllLocations);
 
 // get location by id
 
