@@ -1,5 +1,9 @@
 import { ILocation } from '../core/db/models/Location';
-import { Request } from 'express';
+import { Axios } from 'axios';
+
+const axios = new Axios({
+  baseURL: 'http://router.project-osrm.org',
+});
 
 interface SortedLocation extends ILocation {
   position: number;
@@ -17,6 +21,7 @@ class LocationsService {
     var radians = (degrees * Math.PI) / 180;
     return radians;
   }
+
   static calculateDistance(startCoords: ILocation, destCoords: ILocation) {
     const startingLat = this.degreesToRadians(startCoords.latitude);
     const startingLong = this.degreesToRadians(startCoords.longitude);
@@ -86,7 +91,7 @@ class LocationsService {
     return locations as SortedLocation[];
   }
 
-  static sortLocations(locations: ILocation[] | null, options: any): SortedLocation[] {
+  static async sortLocations(locations: ILocation[] | null, options: any): Promise<SortedLocation[]> {
     if (!locations || locations.length === 0) {
       return [];
     }
@@ -96,6 +101,22 @@ class LocationsService {
     }
 
     if ((options as SortOptions).algorithm === 'OSRM') {
+      const response = await axios.get(
+        `/table/v1/car/${locations.map(({ latitude, longitude }) => `${longitude},${latitude}`).join(';')}`,
+      );
+      const data = JSON.parse(response.data);
+      // const roads = Object.fromEntries(
+      //   data.durations.map((duration: number[], index: number) => [locations[index], duration.filter((e) => e !== 0)]),
+      // );
+
+      const graph = new Map<ILocation, [ILocation, number][]>(
+        data.durations.map((duration: number[], i: number) => [
+          locations[i],
+          duration.map((distance, j) => [locations[j], distance]).filter((e) => e[1] !== 0),
+        ]),
+      );
+
+      console.log({ graph });
     }
 
     const graph = this.constructGraph(locations);

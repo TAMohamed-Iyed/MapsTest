@@ -1,4 +1,4 @@
-import { MutableRefObject, useEffect, useRef, useState } from "react";
+import { MutableRefObject, useRef, useState } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 import Marques from "./Marques";
 
@@ -34,7 +34,7 @@ function Map() {
           maxDistance (kilometer) :
           <input type={"number"} ref={maxDistanceRef} />
           <button
-            onClick={(e) =>
+            onClick={() =>
               setOptions((prev) => ({
                 ...prev,
                 maxDistance: parseInt(maxDistanceRef.current.value),
@@ -48,7 +48,7 @@ function Map() {
           maxDuration (seconds) :
           <input type={"number"} ref={maxDurationeRef} />
           <button
-            onClick={(e) =>
+            onClick={() =>
               setOptions((prev) => ({
                 ...prev,
                 maxDuration: parseInt(maxDurationeRef.current.value),
@@ -62,7 +62,7 @@ function Map() {
           maxTrips :
           <input type={"number"} ref={maxTripsRef} />
           <button
-            onClick={(e) =>
+            onClick={() =>
               setOptions((prev) => ({
                 ...prev,
                 maxTrips: parseInt(maxTripsRef.current.value),
@@ -89,7 +89,16 @@ function Map() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <Marques options={options} />
+        <Marques
+          options={
+            options as {
+              maxDistance: number;
+              maxDuration: number;
+              maxTrips: number;
+              algorithm: "OSRM" | "local";
+            }
+          }
+        />
       </MapContainer>
     </>
   );
