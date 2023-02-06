@@ -1,43 +1,77 @@
 import { useCallback, useEffect, useState } from "react";
 import { BACKEND_URL } from "./config";
-import Routing from "./routingMachine";
+import Router, { createWaypointsFromLocations } from "./routingMachine";
 import randomRGB from "./utils/randomRGB";
 import { ILocation } from "./routingMachine";
 import {
+  latLng,
   LatLng,
   LeafletEvent,
   LeafletMouseEvent,
   LocationEvent,
+  Routing,
 } from "leaflet";
 import { Marker, useMapEvents } from "react-leaflet";
 
-const Marques = () => {
+interface Props {
+  options: {
+    maxDistance: number;
+    maxDuration: number;
+    maxTrips: number;
+    algorithm: "local" | "OSRM";
+  };
+}
+
+const Marques = ({ options }: Props) => {
   const [positions, setPositions] = useState<ILocation[]>([]);
+  const [router, setRouter] = useState<Routing.Control | null>(null);
 
   const getPositions = useCallback(async () => {
-    const response = await fetch(`${BACKEND_URL}locations`);
+    const response = await fetch(
+      `${BACKEND_URL}locations?algorithm=${options.algorithm}${
+        options.maxDistance > 0 ? "&maxDistance=" + options.maxDistance : ""
+      }${options.maxDuration > 0 ? "&maxDuration=" + options.maxDuration : ""}${
+        options.maxTrips > 0 ? "&maxTrips=" + options.maxTrips : ""
+      }`
+    );
     const { data } = await response.json();
     setPositions(data);
-  }, []);
+    return data;
+  }, [options]);
 
-  const addPosition = useCallback(async (newPosition: LatLng) => {
-    const response = await fetch(`${BACKEND_URL}/locations`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        latitude: newPosition.lat,
-        longitude: newPosition.lng,
-      }),
-    });
-
-    const { data } = await response.json();
-
-    if (response.status.toString().startsWith("2")) {
-      setPositions((prev) => [...prev, data]);
+  const updateRoutes = useCallback(async () => {
+    if (!router) {
+      return;
     }
-  }, []);
+    const newWayPoints = createWaypointsFromLocations(await getPositions());
+    router.setWaypoints(newWayPoints);
+    const r = router.getRouter();
+    r.route(newWayPoints, () => null);
+  }, [getPositions, router]);
+
+  const addPosition = useCallback(
+    async (newPosition: LatLng) => {
+      const response = await fetch(`${BACKEND_URL}/locations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          latitude: newPosition.lat,
+          longitude: newPosition.lng,
+        }),
+      });
+
+      if (response.status.toString().startsWith("2")) {
+        if (positions.length === 0) {
+          return setPositions(await getPositions());
+        }
+
+        await updateRoutes();
+      }
+    },
+    [positions, updateRoutes, getPositions]
+  );
 
   const deletePosition = useCallback(
     (id: ILocation["_id"]) => async (e: LeafletMouseEvent) => {
@@ -51,10 +85,10 @@ const Marques = () => {
       });
 
       if (response.status.toString().startsWith("2")) {
-        setPositions((prev) => prev.filter((p) => p._id !== id));
+        await updateRoutes();
       }
     },
-    []
+    [updateRoutes]
   );
 
   const updatePosition = useCallback(
@@ -69,18 +103,10 @@ const Marques = () => {
       });
 
       if (response.status.toString().startsWith("2")) {
-        setPositions((prev) => {
-          const position = prev.find((p) => p._id === id);
-          if (position) {
-            position.latitude = newPosition.lat;
-            position.longitude = newPosition.lng;
-          }
-
-          return [...prev];
-        });
+        await updateRoutes();
       }
     },
-    []
+    [updateRoutes]
   );
 
   const map = useMapEvents({
@@ -109,7 +135,6 @@ const Marques = () => {
           position={{ lat: positions[0].latitude, lng: positions[0].longitude }}
           key={1}
           riseOnHover
-          draggable
           eventHandlers={{
             click: deletePosition(positions[0]._id),
             dragend: updatePosition(positions[0]._id),
@@ -117,29 +142,14 @@ const Marques = () => {
         />
       ) : (
         positions.length > 1 && (
-          <Routing
+          <Router
             route={positions}
             deletePosition={deletePosition}
             updatePosition={updatePosition}
+            onLoad={(router) => setRouter(router)}
           />
         )
       )}
-      {/* {positions.map((pos, index) => (
-        <Marker
-          position={{ lat: pos.latitude, lng: pos.longitude }}
-          key={index}
-          riseOnHover
-          draggable
-          eventHandlers={{
-            click: deletePosition(pos._id),
-            dragend: updatePosition(pos._id),
-          }}
-        >
-          <Popup>
-            latitude : {pos.latitude}, longitude : {pos.longitude}
-          </Popup>
-        </Marker>
-      ))} */}
     </>
   );
 };

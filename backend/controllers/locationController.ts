@@ -15,8 +15,9 @@ export const createLocation = asyncHandler(async (req: Request, res: Response) =
 
 //get all locations
 export const getAllLocations = asyncHandler(async (req: Request, res: Response) => {
-  let roads: ILocation[] | null = await LocationRepo.findAll({});
-  return new SuccessResponse('success', LocationsService.sortLocations(roads)).send(res);
+  const { maxDistance, maxTrips } = req.query;
+  const roads: ILocation[] | null = await LocationRepo.findAll({});
+  return new SuccessResponse('success', LocationsService.sortLocations(roads, req.query)).send(res);
 });
 
 // get location by id

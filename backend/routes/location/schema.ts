@@ -49,5 +49,6 @@ export default {
     maxDistance: Joi.number().optional(),
     maxDuration: Joi.number().optional(),
     maxTrips: Joi.number().optional(),
+    algorithm: Joi.string().allow('local', 'OSRM'),
   }),
 };

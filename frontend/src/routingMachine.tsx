@@ -21,20 +21,38 @@ interface Props extends ControlOptions {
   route: ILocation[];
   deletePosition: (id: string) => (e: LeafletMouseEvent) => void;
   updatePosition: (id: string) => (e: LeafletMouseEvent) => void;
+  onLoad: (router: Routing.Control) => void;
 }
+
+export const createWaypointsFromLocations = (locations: ILocation[]) => {
+  if (locations.length === 0) {
+    return [];
+  }
+
+  return locations
+    .slice()
+    .sort((a, b) => ((a as any).position > (b as any).position ? 1 : -1))
+    .map((location) => {
+      if (location instanceof Routing.Waypoint) {
+        return location;
+      }
+
+      const { latitude, longitude, _id } = location;
+      const waypoint = new Routing.Waypoint(latLng(latitude, longitude), "", {
+        allowUTurn: false,
+      });
+      (waypoint as any)._id = _id;
+      return waypoint;
+    });
+};
 
 const createRoutineMachineLayer = ({
   route,
   updatePosition,
   deletePosition,
+  onLoad,
 }: Props) => {
-  const waypoints = route.map(({ latitude, longitude, _id }) => {
-    const waypoint = new Routing.Waypoint(latLng(latitude, longitude), "", {
-      allowUTurn: false,
-    });
-    (waypoint as any)._id = _id;
-    return waypoint;
-  });
+  const waypoints = createWaypointsFromLocations(route);
   const instance = Routing.control({
     waypoints,
     lineOptions: {
@@ -56,7 +74,6 @@ const createRoutineMachineLayer = ({
               <span>${waypointIndex}</span>
             </div>`,
           }),
-          draggable: true,
         })
           .on(
             "dragend",
@@ -68,9 +85,10 @@ const createRoutineMachineLayer = ({
     containerClassName: "itinerary",
     waypointMode: "connect",
     fitSelectedRoutes: true,
-    showAlternatives: true,
+    showAlternatives: false,
   });
 
+  onLoad(instance);
   return instance;
 };
 

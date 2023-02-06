@@ -1,4 +1,16 @@
 import { ILocation } from '../core/db/models/Location';
+import { Request } from 'express';
+
+interface SortedLocation extends ILocation {
+  position: number;
+}
+
+interface SortOptions {
+  maxDistance?: string;
+  maxTrips?: string;
+  maxDuration?: string;
+  algorithm: 'local' | 'OSRM';
+}
 
 class LocationsService {
   static degreesToRadians(degrees: number) {
@@ -31,6 +43,7 @@ class LocationsService {
         0,
       );
   }
+
   static constructGraph(locations: ILocation[]) {
     const graph = new Map<ILocation, ILocation[]>();
     for (const source of locations) {
@@ -58,6 +71,7 @@ class LocationsService {
     }
     return road;
   }
+
   static findAllRoads(source: ILocation, destinations: ILocation[]) {
     const roads: ILocation[][] = [];
     for (const destination of destinations) {
@@ -67,13 +81,21 @@ class LocationsService {
     return roads;
   }
 
-  static sortLocations(locations: ILocation[] | null) {
-    if (!locations) {
+  static formatSorted(locations: ILocation[]): SortedLocation[] {
+    locations.forEach((location, index) => ((location as SortedLocation).position = index));
+    return locations as SortedLocation[];
+  }
+
+  static sortLocations(locations: ILocation[] | null, options: any): SortedLocation[] {
+    if (!locations || locations.length === 0) {
       return [];
     }
 
-    if (locations.length === 1 || locations.length === 0) {
-      return locations;
+    if (locations.length === 1) {
+      return this.formatSorted(locations);
+    }
+
+    if ((options as SortOptions).algorithm === 'OSRM') {
     }
 
     const graph = this.constructGraph(locations);
@@ -83,7 +105,11 @@ class LocationsService {
       roads.push(...this.findAllRoads(source, destinations));
     }
 
-    return roads.slice().sort((a, b) => (this.calculateRoadDistance(a) > this.calculateRoadDistance(b) ? 1 : -1))[0];
+    const sorted = roads
+      .slice()
+      .sort((a, b) => (this.calculateRoadDistance(a) > this.calculateRoadDistance(b) ? 1 : -1));
+
+    return this.formatSorted(sorted[0]);
   }
 }
 

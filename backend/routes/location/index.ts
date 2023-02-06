@@ -75,6 +75,8 @@ router.post('/', validate(locationSchema.create), createLocation);
  *      - in: query
  *        name: maxTrips
  *        description: max number of trips
+ *      - in: query
+ *        name: algorithm
  *    responses:
  *      200:
  *        description: Get all locations
