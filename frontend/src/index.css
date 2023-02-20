@@ -1,0 +1,36 @@
+*, *::before, *::after {
+   margin: 0;
+   padding: 0;
+   box-sizing: border-box;
+}
+.leaflet-container {
+   min-height: 100vh;
+}
+
+.itinerary {
+   position: absolute;
+   right: 0;
+   top: 0;
+   width: 400px;
+   max-height: 100vh;
+   overflow: auto;
+}
+
+.marker img {
+   position: absolute;
+   top: -50%;
+   left: 50%;
+   transform: translate(-50%, -50%);
+}
+.marker span {
+   position: absolute;
+   top: -80%;
+   left: 20%;
+   transform: translateY(-50%);
+   color: white;
+}
+
+.leaflet-marker-icon {
+   background: transparent;
+   border: 0;
+}
